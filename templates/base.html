@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>{% block title %}Voice Bot{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-6YTe1fyYr5P12tm3CC3TRCj2+FtnfH+VMC6IxNtR21rAq/NFH1aKtr1Mjlqqp7qL" crossorigin="anonymous">
+    <!-- Custom CSS -->
+    {% comment %} <link rel="stylesheet" href="{% static 'css/style.css' %}"> {% endcomment %}
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff; /* Light background color */
+            color: black;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Full height for footer positioning */
+        }
+
+
+        label {
+            font-size: 16px;
+            color: black;
+            margin-bottom: 10px;
+            display: block;
+        }
+        select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid blue;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 18px;
+            background: rgba(255, 255, 255, 0.5);
+        }
+        #language-form {
+            background: rgba(255, 255, 255, 0.8); /* Slightly more opaque for better readability */
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            border: 2px solid red;
+            padding: 20px; /* Adjusted padding for mobile */
+            width: 90%; /* Full width on mobile */
+            max-width: 500px; /* Max width for larger screens */
+            text-align: center;
+        }
+        .header {
+             /* Semi-transparent header */
+            color: black;
+            padding: 20px 0;
+        }
+        .footer {
+            background-color: rgba(74, 144, 226, 0); /* Semi-transparent footer */
+            color: black;
+            text-align: center;
+            padding: 15px 0;
+            margin-top: auto; /* Push footer to the bottom */
+        }
+        .content {
+             
+            background-color: rgba(255, 255, 255, 0); /* White background for content */
+            border-radius: 10px;
+            margin:auto; /* Margin for spacing */
+        }
+        .card {
+            margin:auto;
+            margin-bottom: 20px;
+            border: 2px solid pink;
+            border-radius: 10px;
+            transition: transform 0.3s; /* Smooth hover effect */
+            
+            
+        }
+        .card:hover {
+            transform: scale(1.05); /* Scale effect on hover */
+        }
+        .btn-custom {
+            background-color: #4A90E2; /* Custom button color */
+            border: none;
+            color: white;
+        }
+        .btn-custom:hover {
+            background-color: #357ABD; /* Darker button on hover */
+        }
+        .text-info {
+            font-weight: bold;
+            color: #4A90E2; /* Highlighted text color */
+        }
+        @media (max-width: 576px) {
+            .header, .footer {
+                text-align: center;
+            }
+            .content {
+                margin: 10px; /* Reduced margin for smaller screens */
+            }
+        }
+        .card-body{
+            background: rgb(255 247 0 / 24%);
+        }
+        img {
+            max-width: 200px; /* Logo size */
+            margin: 20px 0;
+        }
+
+        .chat-container {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 15px;
+            width: 80%;
+            max-width: 600px;
+            background-color: #fff; /* White background for chat */
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Shadow for depth */
+        }
+
+        .chat-history {
+            margin-bottom: 20px;
+            max-height: 200px;
+            overflow-y: auto; /* Scrollable chat history */
+            border: 1px solid #e1e1e1;
+            border-radius: 5px;
+            padding: 10px;
+            background-color: #f9f9f9; /* Light gray background */
+        }
+
+        .chat-history p {
+            margin: 5px 0;
+        }
+
+        .transcription, .response {
+            font-weight: bold;
+            margin: 10px 0;
+            padding: 5px;
+            border: 1px solid #4A90E2; /* Blue border */
+            border-radius: 5px;
+            background-color: #e9f5ff; /* Light blue background */
+        }
+
+        audio {
+            margin-top: 20px;
+            width: 100%; /* Responsive audio player */
+        }
+
+        .vbutton {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s; /* Smooth transition */
+            margin: 10px; /* Space between buttons */
+            color: #fff; /* White text */
+        }
+
+        #startRecordingBtn {
+            background-color: #4CAF50; /* Green */
+        }
+
+        #stopRecordingBtn {
+            background-color: #f44336; /* Red */
+        }
+
+        button:hover {
+            opacity: 0.9; /* Slight opacity change on hover */
+        }
+    </style>
+    {% block extra_head %}
+    {% endblock %}
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{% url 'home' %}">Voice Bot</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'home' %}">Home</a>
+                    </li>
+                    
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main content -->
+    <div class="container mt-5">
+        {% block content %}
+        <!-- Placeholder for content specific to each page -->
+        {% endblock %}
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white text-center py-3 mt-auto">
+        <p>&copy; 2024 Voice Bot | All Rights Reserved</p>
+    </footer>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js" integrity="sha384-oBqDVmMz4fnFO9gybBogGz5y58MXyG6lr9/wy0e1Rh93WOOKN1z6Jc6Uj5l9s2fh" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js" integrity="sha384-mQ93F3kvV0r1eIQF7dRFbY/tzAQUcMQTe3wtSXTgNf6iD8Bf4gFl6M3EhmCbxd0L" crossorigin="anonymous"></script>
+
+    <!-- Voice Bot Scripts -->
+    {% block extra_scripts %}
+    <!-- Include any page-specific JS here -->
+       <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha384-KyZXEAg3QhqLMpG8r+Knujsl5/8lyyI1n6rX9krgjtH6HE/Am2LqLx2Bj98r67Mt" crossorigin="anonymous"></script>
+
+    <!-- Bootstrap JS (Optional if using interactive elements) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js" integrity="sha384-5kB+ep+XtZoJdmBz0JDjQHQiZLsRJgaF9AFrl6DFl6HtsOd6uOCl1W0Qz7FCnsM" crossorigin="anonymous"></script>
+
+    <script>
+        $(document).ready(function() {
+            window.sendLanguage = function() {
+                const languageId = $('#language-select').val();
+
+                if (!languageId) {
+                    alert('Please select a language.');
+                    return;
+                }
+
+                $.ajax({
+                    url: "{% url 'select_language' %}",
+                    type: 'POST',
+                    data: {
+                        language_id: languageId,
+                        csrfmiddlewaretoken: '{{ csrf_token }}'
+                    },
+                    success: function(response) {
+                        console.log("Language ID sent successfully:", response);
+                        window.location.href = "{% url 'voice' %}";
+                    },
+                    error: function(error) {
+                        console.error("Error sending language ID:", error);
+                    }
+                });
+            };
+        });
+    </script>
+    {% endblock %}
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+{% extends "base.html" %}
+
+{% block title %}Voice Bot Home{% endblock %}
+{% block content %}
+       
+    <h1>Voice Bot</h1>
+    <img src="https://png.pngtree.com/png-vector/20230225/ourmid/pngtree-smart-chatbot-cartoon-clipart-png-image_6620453.png" alt="Logo">
+    <div class="chat-container">
+        <div class="chat-history" id="chatHistory">
+            <!-- Chat messages will be appended here -->
+            <p><strong>Bot:</strong> Welcome to the Voice Bot! How can I assist you today?</p>
+        </div>
+        <h3 class="response" id="responseMessage" style="display: none;"></h3>
+    </div>
+    
+    <div style="padding:10px;margin-top:40px;"> 
+        <p>The selected language code is: {{ request.session.language_code }}</p>  
+        {% comment %} Use if statements to customize content based on the language {% endcomment %}
+        {% if request.session.language_code == 'hi-IN' %}
+            <p>स्वागत हे! आप हिंदी का उपयोग कर रहे हैं।</p>
+        {% elif request.session.language_code == 'mr-IN' %}
+            <p>स्वागत आहे! तुम्ही मराठी वापरत आहात।</p>
+        {% elif request.session.language_code == 'bn-IN' %}
+            <p>স্বাগতম! আপনি বাংলা ব্যবহার করছেন।</p>
+        {% elif request.session.language_code == 'od-IN' %}
+            <p>ସ୍ବାଗତ! ଆପଣ ଓଡ଼ିଆ ଉପଯୋଗ କରୁଛନ୍ତି।</p>
+        {% elif request.session.language_code == 'pa-IN' %}
+            <p>ਸਵਾਗਤ ਹੈ! ਤੁਸੀਂ ਪੰਜਾਬੀ ਵਰਤ ਰਹੇ ਹੋ।</p>
+        {% elif request.session.language_code == 'te-IN' %}
+            <p>స్వాగతం! మీరు తెలుగు వాడుతున్నారు.</p>
+        {% elif request.session.language_code == 'kn-IN' %}
+            <p>ಸ್ವಾಗತ! ನೀವು ಕನ್ನಡ ಬಳಸಿ.</p>
+        {% elif request.session.language_code == 'ml-IN' %}
+            <p>സ്വാഗതം! നിങ്ങൾ മലയാളം ഉപയോഗിക്കുന്നു.</p>
+        {% elif request.session.language_code == 'gu-IN' %}
+            <p>સ્વાગત છે! તમે ગુજરાતી ઉપયોગ કરી રહ્યા છો.</p>
+        {% elif request.session.language_code == 'ta-IN' %}
+            <p>வணக்கம்! நீங்கள் தமிழ் பயன்படுத்துகிறீர்கள்.</p>
+        {% elif request.session.language_code == 'en-IN' %}
+            <p>Welcome! You are using English.</p>
+        {% else %}
+            <p>Welcome! The language is set to English by default.</p>
+        {% endif %}
+    </div>
+    <div id="latencyInfo" style="margin-top: 40px; display: none;">
+        <h3>Processing Latencies:</h3>
+        <ul>
+            <li>Audio Reception Latency: <span id="latencyReceiveAudio">0.000</span> seconds</li>
+            <li>Audio Save Latency: <span id="latencySaveAudio">0.000</span> seconds</li>
+            <li>Transcription Latency: <span id="latencyTranscription">0.000</span> seconds</li>
+            <li>OpenAI Response Latency: <span id="latencyOpenAIResponse">0.000</span> seconds</li>
+            <li>Text-to-Speech Latency: <span id="latencyTextToSpeech">0.000</span> seconds</li>
+        </ul>
+    </div>
+
+    <div style="padding:10px;margin-top:40px;"> 
+        Manually Call and END and talk to the bot one by one sentence 
+    </div>
+
+    <div style="display:flex;">
+        <button id="startRecordingBtn" class="vbutton">Record</button>
+        <button id="stopRecordingBtn" class="vbutton" disabled>Send</button> <!-- Disable stop button initially -->
+    </div>
+
+  
+
+{% endblock %}
+
+{% block extra_scripts %}
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let isRecording = false;
+        let stream;
+
+        async function startRecording() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                    audioChunks = []; // Reset for next recording
+
+                    // Send audioBlob to your backend for processing
+                    const formData = new FormData();
+                    formData.append('audio', audioBlob, 'captured_audio.wav');
+
+                    const startTime = performance.now(); // Start time for latency measurement
+                    // Fetch the transcription and response from the backend
+                    const response = await fetch('/ts/', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const result = await response.json();
+                    const endTime = performance.now(); // End time for latency measurement
+                    const totalLatency = endTime - startTime;
+
+                    // Update chat history with the user's message and bot response
+                    updateChatHistory(result.transcription, result.response);
+
+                    // Update latency information
+                    updateLatencyInfo(result.latencies);
+                    
+                    // Play the response audio
+                    playResponseAudio(result.audioUrl);
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                document.getElementById('startRecordingBtn').disabled = true; // Disable start button
+                document.getElementById('stopRecordingBtn').disabled = false; // Enable stop button
+
+                // Send audio chunks at intervals
+                setInterval(() => {
+                    if (isRecording && audioChunks.length > 0) {
+                        mediaRecorder.requestData();
+                    }
+                }, 3000); // Send every 3 seconds
+
+            } catch (error) {
+                alert('Could not access the microphone. Please check your settings.');
+            }
+        }
+
+        // Update chat history
+        function updateChatHistory(transcription, response) {
+            const chatHistory = document.getElementById('chatHistory');
+            chatHistory.innerHTML += `<p><strong>User:</strong> ${transcription}</p>`;
+            const responseMessage = document.getElementById('responseMessage');
+            responseMessage.innerHTML = `Response: ${response}`;
+            responseMessage.style.display = 'block'; // Show response
+        }
+
+        // Update latency information
+        function updateLatencyInfo(latencies) {
+            document.getElementById('latencyInfo').style.display = 'block'; // Show latency info
+            document.getElementById('latencyReceiveAudio').innerText = latencies.receive_audio.toFixed(3);
+            document.getElementById('latencySaveAudio').innerText = latencies.save_audio.toFixed(3);
+            document.getElementById('latencyTranscription').innerText = latencies.transcription.toFixed(3);
+            document.getElementById('latencyOpenAIResponse').innerText = latencies.openai_response.toFixed(3);
+            document.getElementById('latencyTextToSpeech').innerText = latencies.text_to_speech.toFixed(3);
+        }
+
+        // Play response audio
+        function playResponseAudio(audioUrl) {
+            const audioPlayer = new Audio(audioUrl);
+            audioPlayer.play();
+        }
+
+        // Start recording when the Start button is clicked
+        document.getElementById('startRecordingBtn').onclick = () => {
+            if (!isRecording) {
+                startRecording();
+            }
+        };
+
+        // Stop recording when the Stop button is clicked
+        document.getElementById('stopRecordingBtn').onclick = () => {
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+                isRecording = false; // Update recording state
+                document.getElementById('startRecordingBtn').disabled = false; // Enable start button
+                document.getElementById('stopRecordingBtn').disabled = true; // Disable stop button
+                stream.getTracks().forEach(track => track.stop()); // Stop all audio tracks
+            }
+        };
+    </script>
+{% endblock %}
